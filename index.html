@@ -79,7 +79,7 @@
 
   <div class="input-group">
     <input type="password" id="password" placeholder="Shkruaj fjalëkalimin" />
-    <span class="toggle-eye" onclick="togglePassword()">👁️</span>
+    <span class="toggle-eye" id="toggleBtn">👁️</span>
   </div>
 
   <div id="result" class="result"></div>
@@ -107,13 +107,14 @@
   const passwordInput = document.getElementById("password");
   const resultEl = document.getElementById("result");
   const suggestionsEl = document.getElementById("suggestions");
+  const toggleBtn = document.getElementById("toggleBtn");
 
-  passwordInput.addEventListener("input", checkPasswordStrength);
-
-  function togglePassword() {
+  toggleBtn.addEventListener("click", () => {
     visible = !visible;
     passwordInput.type = visible ? "text" : "password";
-  }
+  });
+
+  passwordInput.addEventListener("input", checkPasswordStrength);
 
   function checkPasswordStrength() {
     const pw = passwordInput.value;
